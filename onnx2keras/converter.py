@@ -137,7 +137,7 @@ def onnx_to_keras(onnx_model, input_names,
                 postfix = node_index if len(node.output) == 1 else "%s_%s" % (node_index, output_index)
                 keras_names.append('LAYER_%s' % postfix)
             else:
-                keras_names.append(output)
+                keras_names.append(output.replace('@','_'))
 
         if len(node.output) != 1:
             logger.warning('Trying to convert multi-output node')
