@@ -23,16 +23,19 @@ def convert_clip(node, params, layers, lambda_func, node_name, keras_name):
     :return: None
     """
     logger = logging.getLogger('onnx2keras.clip')
-    if len(node.input) != 1:
+    if len(node.input) not in {1, 3}:
         assert AttributeError('More than 1 input for clip layer.')
 
     input_0 = ensure_tf_type(layers[node.input[0]], name="%s_const" % keras_name)
 
-    if params['min'] == 0:
-        logger.debug("Using ReLU({0}) instead of clip".format(params['max']))
-        layer = keras.layers.ReLU(max_value=params['max'], name=keras_name)
+    v_min = params.get('min') or layers[node.input[1]]
+    v_max = params.get('max') or layers[node.input[2]]
+
+    if v_min == 0:
+        logger.debug("Using ReLU({0}) instead of clip".format(v_max))
+        layer = keras.layers.ReLU(max_value=v_max, name=keras_name)
     else:
-        def target_layer(x, vmin=params['min'], vmax=params['max']):
+        def target_layer(x, vmin=v_min, vmax=v_max):
             import tensorflow as tf
             return tf.clip_by_value(x, vmin, vmax)
         layer = keras.layers.Lambda(target_layer, name=keras_name)
