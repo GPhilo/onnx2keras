@@ -1,6 +1,5 @@
 from tensorflow import keras
 import tensorflow as tf
-import tensorflow_addons as tfa
 import logging
 from .utils import ensure_tf_type, ensure_numpy_type
 
@@ -69,6 +68,14 @@ def convert_instancenorm(node, params, layers, lambda_func, node_name, keras_nam
     """
     logger = logging.getLogger('onnx2keras.instancenorm2d')
 
+    try:
+        import tensorflow_addons as tfa
+    except ImportError:
+        raise ValueError('Converting models using InstanceNorm layers requires '
+                         'Tensorflow Addons installed. Please install the package '
+                         'and rerun the conversion.')
+
+
     input_0 = ensure_tf_type(layers[node.input[0]], name="%s_const" % keras_name)
 
     if len(node.input) == 3:
@@ -76,7 +83,6 @@ def convert_instancenorm(node, params, layers, lambda_func, node_name, keras_nam
         beta = ensure_numpy_type(layers[node.input[2]])
     else:
         raise AttributeError('Unknown arguments for instance norm')
-
     epsilon = params['epsilon']
 
     instance_norm = tfa.layers.InstanceNormalization(
@@ -87,7 +93,6 @@ def convert_instancenorm(node, params, layers, lambda_func, node_name, keras_nam
         trainable=False
         )
     layers[node_name] = instance_norm(input_0)
-
 
 def convert_dropout(node, params, layers, lambda_func, node_name, keras_name):
     """
@@ -131,7 +136,7 @@ def convert_lrn(node, params, layers, lambda_func, node_name, keras_name):
 
     def target_layer(x, depth_radius=params['size'], bias=params['bias'], alpha=params['alpha'], beta=params['beta']):
         import tensorflow as tf
-        from keras import backend as K
+        from tensorflow.keras import backend as K
         data_format = 'NCHW' if K.image_data_format() == 'channels_first' else 'NHWC'
 
         if data_format == 'NCHW':
