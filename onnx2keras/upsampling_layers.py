@@ -36,3 +36,24 @@ def convert_upsample(node, params, layers, lambda_func, node_name, keras_name):
     )
 
     layers[node_name] = upsampling(layers[node.input[0]])
+
+
+def convert_resize(node, params, layers, lambda_func, node_name, keras_name):
+    import logging
+    from copy import copy
+    """
+    Convert resize as an upsample.
+    :param node: current operation node
+    :param params: operation attributes
+    :param layers: available keras layers
+    :param lambda_func: function for keras Lambda layer
+    :param node_name: internal converter name
+    :param keras_name: resulting layer name
+    :return: None
+    """
+    logger = logging.getLogger('onnx2keras:resize')
+    logger.warning('!!! EXPERIMENTAL SUPPORT (resize dispatches to upsample conversion) !!!')
+
+    _node = copy(node) # make a shallow copy to avoid altering the actual object permanently
+    _node.input[1], _node.input[2] = node.input[2], node.input[1] # Upsample takes size as second input
+    convert_upsample(_node, params, layers, lambda_func, node_name, keras_name)

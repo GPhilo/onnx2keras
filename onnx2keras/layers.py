@@ -12,7 +12,7 @@ from .constant_layers import convert_constant
 from .normalization_layers import convert_batchnorm, convert_instancenorm, convert_dropout, convert_lrn
 from .pooling_layers import convert_avgpool, convert_maxpool, convert_global_avg_pool
 from .padding_layers import convert_padding
-from .upsampling_layers import convert_upsample
+from .upsampling_layers import convert_upsample, convert_resize
 
 
 AVAILABLE_CONVERTERS = {
@@ -32,6 +32,7 @@ AVAILABLE_CONVERTERS = {
     'ReduceMax': convert_reduce_max,
     'ReduceSum': convert_reduce_sum,
     'ReduceMean': convert_reduce_mean,
+    'Resize': convert_resize,
     'Pow': convert_pow,
     'Slice': convert_slice,
     'Squeeze': convert_squeeze,
