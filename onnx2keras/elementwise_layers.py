@@ -72,11 +72,7 @@ def convert_elementwise_add(node, params, layers, lambda_func, node_name, keras_
 
         def target_layer(x):
             import tensorflow as tf
-            print(x[0], x[1])
-            layer = tf.add(
-                x[0],
-                x[1]
-            )
+            layer = tf.add(x[0], x[1])
             return layer
 
         lambda_layer = keras.layers.Lambda(target_layer, name=keras_name)
