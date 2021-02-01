@@ -199,7 +199,7 @@ def onnx_to_keras(onnx_model, input_names,
 
     if change_ordering:
         change_ord_axes_map = {
-            3: 2,
+            3: 1,
             1: 3,
             -1: 1
         }
@@ -213,14 +213,12 @@ def onnx_to_keras(onnx_model, input_names,
                 layer['config']['shared_axes'] = [1, 2]
 
             if layer['config'] and 'batch_input_shape' in layer['config']:
-                layer['config']['batch_input_shape'] = \
-                    tuple(np.reshape(np.array(
-                        [
-                            [None] +
-                            list(layer['config']['batch_input_shape'][2:][:]) +
-                            [layer['config']['batch_input_shape'][1]]
-                        ]), -1
-                    ))
+                layer['config']['batch_input_shape'] = (
+                    None,
+                    *layer['config']['batch_input_shape'][2:],
+                    layer['config']['batch_input_shape'][1]
+                )
+
             if layer['config'] and 'target_shape' in layer['config']:
                 if len(list(layer['config']['target_shape'][1:][:])) > 0:
                     layer['config']['target_shape'] = \
@@ -231,12 +229,15 @@ def onnx_to_keras(onnx_model, input_names,
 
             if layer['config'] and 'data_format' in layer['config']:
                 layer['config']['data_format'] = 'channels_last'
+
             if layer['config'] and 'axis' in layer['config']:
                 axis = layer['config']['axis']
                 # BatchNorm wrap axis with ListWrapper instead single INT value
                 if isinstance(axis, (tuple, list)):
                     axis = axis[0]
-                layer['config']['axis'] = change_ord_axes_map.get(axis, layer['config']['axis'])
+                    layer['config']['axis'][0] = change_ord_axes_map.get(axis, layer['config']['axis'])
+                else:
+                    layer['config']['axis'] = change_ord_axes_map.get(axis, layer['config']['axis'])
 
         for layer in conf['layers']:
             if 'function' in layer['config'] and layer['config']['function'][1] is not None:
@@ -269,6 +270,13 @@ def onnx_to_keras(onnx_model, input_names,
                     else:
                         # if map exits will change else will remain the same
                         dargs[0] = change_ord_axes_map.get(dargs[0], dargs[0])
+                else:
+                    # Workaround for bug converting conv2d_transpose operations
+                    func = lambda_funcs.get(layer['name'].replace('_const2',''))
+                    if func:
+                        if isinstance(dargs[0], np.ndarray) and len(dargs[0].shape)==4:
+                            # array of constants needs to be transposed
+                            dargs[0] = np.transpose(dargs[0], (0, 2, 3, 1))
 
                 kerasf[1] = tuple(dargs)
                 layer['config']['function'] = tuple(kerasf)
